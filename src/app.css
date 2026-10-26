@@ -23,7 +23,7 @@ button:disabled { opacity: .6; cursor: wait; }
 .paper.no-title .paper-head { display: none; }
 .paper.no-title .page-content { top: 0; }
 .trace-word { max-width: none; }
-.vertical-col { line-height: 1.25; }
+.vertical-col { line-height: 1.1; }
 .workhead { width: 100%; flex-wrap: wrap; }
 .status { max-width: 100%; }
 .preview-help { line-height: 1.8; }

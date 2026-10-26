@@ -169,6 +169,30 @@ try {
     await set(page, 'showTitle', false);
     assert.equal(await page.locator('.paper-head').first().isVisible(), false);
   });
+  await check('60 种纸张、字号与字距边界组合无文字裁切', async () => {
+    for (const preset of ['spring', 'enessay']) {
+      for (const fontSize of [3.5, 10]) for (const letterSpace of [0, 2.5]) {
+        for (const paperSize of ['a4p', 'a4l', 'a5p', 'padp', 'padl']) {
+          for (const layoutMode of (preset === 'spring' ? ['poem', 'vertical'] : ['essay'])) {
+            await page.evaluate(({ preset, fontSize, letterSpace, paperSize, layoutMode }) => {
+              window.QINGSONG.choosePreset(preset);
+              for (const [id, value] of Object.entries({ fontSize, letterSpace, paperSize, layoutMode, lineSize: 8, repeatCount: 1 })) document.getElementById(id).value = value;
+              document.getElementById('fontSize').dispatchEvent(new Event('input', { bubbles: true }));
+            }, { preset, fontSize, letterSpace, paperSize, layoutMode });
+            await noClippedRows(page);
+          }
+        }
+      }
+    }
+  });
+  await page.evaluate(() => window.QINGSONG.choosePreset('spring'));
+  await set(page, 'paperSize', 'a5p');
+  await set(page, 'layoutMode', 'vertical');
+  await set(page, 'fontSize', 10);
+  await set(page, 'letterSpace', 2.5);
+  await set(page, 'showTitle', true);
+  await noClippedRows(page);
+  await savePDF(page, 'extreme-vertical-a5', '落月摇情满江树');
   await context.close();
 
   for (const [name, width, height] of [['tablet-portrait', 768, 1024], ['tablet-landscape', 1180, 820], ['phone', 360, 800]]) {

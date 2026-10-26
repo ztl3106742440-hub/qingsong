@@ -94,6 +94,9 @@ elif command == 'verify-site':
     manifest = json.loads((ROOT / 'public/version.json').read_text(encoding='utf-8'))
     checked = []
     for name, expected in {**manifest['files'], 'version.json': hashlib.sha256((ROOT / 'public/version.json').read_bytes()).hexdigest()}.items():
+        # .nojekyll is a deployment marker; Pages does not expose dotfiles over HTTP.
+        if name == '.nojekyll':
+            continue
         request = urllib.request.Request(SITE + name, headers={'User-Agent': 'Qingsong-Release-Verification', 'Cache-Control': 'no-cache'})
         with urllib.request.urlopen(request, timeout=30) as response: data = response.read()
         if hashlib.sha256(data).hexdigest() != expected: raise RuntimeError('Published file does not match local release: ' + name)

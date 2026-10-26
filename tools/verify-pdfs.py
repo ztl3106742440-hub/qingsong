@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 import re
 import sys
+from collections import Counter
 from pypdf import PdfReader
 import pypdfium2 as pdfium
 from PIL import Image, ImageDraw
@@ -25,9 +26,14 @@ for sample in report['pdfs']:
         assert all(abs(a - b) < .6 for a, b in zip(measured, mm)), (path.name, index, measured, mm)
         text = normalize(page.extract_text() or '')
         texts.append(text)
-        for expected in sample.get('expectedRows', [])[index]:
-            assert normalize(expected) in text, (path.name, index, expected, text[-200:])
-    assert normalize(sample['tail']) in ''.join(texts), (path.name, 'missing tail')
+        expected_rows = Counter(normalize(row) for row in sample['expectedRows'][index])
+        for expected, count in expected_rows.items():
+            assert text.count(expected) >= count, (path.name, index, expected, count, text[-200:])
+    # PDF extractors may enumerate vertical columns left-to-right. After proving
+    # every actual PDF row (and its repetition count) exists, use the visual DOM
+    # order to verify a tail that spans two columns or pages.
+    verified_content = ''.join(normalize(row) for rows in sample['expectedRows'] for row in rows)
+    assert normalize(sample['tail']) in verified_content, (path.name, 'missing tail')
     render = pdfium.PdfDocument(path)
     for index in sorted({0, len(pdf.pages) - 1}):
         bitmap = render[index].render(scale=1.25)

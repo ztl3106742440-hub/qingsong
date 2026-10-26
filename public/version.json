@@ -1,9 +1,9 @@
 {
   "application": "qingsong",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "files": {
     ".nojekyll": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-    "assets/app.css": "d51d4618b6ccb3b9273c4e6f885d6a18fd03fad23afe98bc9e39ee4c48660621",
+    "assets/app.css": "6d022977d267fcfc2b0120d595b4bc1abab6e2f03108aa64cf538f100c632d2e",
     "assets/app.js": "62a5ca94b6382526367d27ad90596c55a9a8563d694c88a74dfce80c62640077",
     "assets/base.css": "7edee0b79e3ab968515c067d43795cab83c7477ada51df08517c6d2424818a9a",
     "assets/core.js": "7df6b1621d108b44478ba314b2564e90e9de87c08def5d846a43f8b9c4cb8438",
