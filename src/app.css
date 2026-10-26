@@ -1,0 +1,70 @@
+/* Screen scaling is isolated from the millimetre-based print layout. */
+:root { color-scheme: light; }
+body { min-width: 320px; }
+button, .control, .pill, .checkline { min-height: 44px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid #b38958; outline-offset: 3px; }
+button:disabled { opacity: .6; cursor: wait; }
+.brand-title { font-family: system-ui, "Microsoft YaHei", sans-serif; letter-spacing: 4px; }
+.brand-title small { letter-spacing: 1px; }
+.symbol { font-family: "inkkai", serif; font-style: normal; }
+.appbar { min-height: 76px; height: auto; gap: 16px; padding-block: 12px; }
+.actions { flex-wrap: wrap; justify-content: flex-end; }
+#saveStatus { max-width: 280px; line-height: 1.6; }
+.layout { height: calc(100dvh - 76px); grid-template-columns: minmax(310px, 380px) minmax(0, 1fr); }
+.controls, .workspace { min-width: 0; }
+.workspace { padding: 24px; overscroll-behavior: contain; }
+.controls { overscroll-behavior: contain; }
+.view-tabs { display: none; }
+.paper-stack { align-items: center; width: 100%; }
+.paper-frame { position: relative; flex-shrink: 0; }
+.paper { transform-origin: top left; }
+.paper-head h3 { overflow-wrap: anywhere; max-height: 13mm; overflow: hidden; }
+.paper-head p { max-width: 130mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paper.no-title .paper-head { display: none; }
+.paper.no-title .page-content { top: 0; }
+.trace-word { max-width: none; }
+.vertical-col { line-height: 1.25; }
+.workhead { width: 100%; flex-wrap: wrap; }
+.status { max-width: 100%; }
+.preview-help { line-height: 1.8; }
+.checkline { cursor: pointer; }
+.checkline input { width: 20px; height: 20px; flex-shrink: 0; }
+.textarea, input.control:not([type="range"]), select.control { font-size: 16px; }
+.fieldnote, .muted { color: #64786b; }
+.fontcard .fontdesc { color: #667969; }
+.controls a { color: #245f49; }
+.filehidden { display: none; }
+.layout[data-view="controls"] .controls, .layout[data-view="preview"] .workspace { visibility: visible; }
+@media (min-width: 901px) { .layout { min-height: 600px; } }
+@media (max-width: 1100px) and (min-width: 901px) { .layout { grid-template-columns: 330px minmax(0, 1fr); } .controls { padding: 18px; } }
+@media (max-width: 900px) {
+  .appbar { position: relative; padding: 14px max(14px, env(safe-area-inset-right)) 12px max(14px, env(safe-area-inset-left)); flex-wrap: wrap; }
+  .brand { flex: 1; } .brand-sub { font-size: 9px; letter-spacing: 1px; }
+  .actions { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+  .actions .btn { padding: 10px 4px; font-size: 12px; }
+  .appbar .tiny { display: block; grid-column: 1 / -1; max-width: none; min-height: 18px; font-size: 12px; }
+  .view-tabs { display: flex; gap: 10px; justify-content: center; padding: 10px; background: #fbfaf7; position: sticky; top: 0; z-index: 9; border-bottom: 1px solid #dbe5dd; }
+  .view-tabs button { flex: 1; max-width: 280px; }
+  .layout { display: block; height: auto; }
+  .controls { border-right: 0; max-height: none; padding: 20px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); }
+  .layout[data-view="controls"] .workspace, .layout[data-view="preview"] .controls { display: none; }
+  .workspace { padding: 18px 12px 40px; overflow: hidden; min-height: 65vh; }
+  .paper-stack { align-items: center; gap: 20px; }
+  .fontcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fontsample { font-size: 22px; }
+}
+@media (max-width: 480px) {
+  .fontcards { grid-template-columns: 1fr; }
+  .brand-title { font-size: 23px; }
+  .brand-sub { max-width: 260px; font-size: 8px; }
+  .workhead h2 { font-size: 17px; }
+}
+@media print {
+  .view-tabs { display: none !important; }
+  .layout .controls { display: none !important; }
+  .layout .workspace, .layout[data-view="controls"] .workspace { display: block !important; }
+  .layout { min-height: 0 !important; }
+  .paper-frame { display: block !important; width: auto !important; height: auto !important; margin: 0 !important; padding: 0 !important; break-after: page; page-break-after: always; }
+  .paper-frame:last-child { break-after: auto; page-break-after: auto; }
+  .paper { transform: none !important; break-after: auto !important; page-break-after: auto !important; }
+}

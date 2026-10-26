@@ -1,0 +1,27 @@
+{
+  "sourceFile": "INKFLOW_04.3_诗文全文临摹工作室.html",
+  "sourceSha256": "665757879203022ccd8cd74753815d4ce7a30ee96a4836e8e9e61bc1f99dda48",
+  "extractedFonts": {
+    "inkkai": {
+      "bytes": 1961852,
+      "sha256": "8b10496216df39d8d9be3c54ac250e6dc65b77acb79ac42f12f69ae38e018366"
+    },
+    "inksong": {
+      "bytes": 1399460,
+      "sha256": "a2f56e0d119188f7c40f12d1d2dd46aa78f6045a223f461b07fa7898e479d7b7"
+    },
+    "inkcomic": {
+      "bytes": 18760,
+      "sha256": "a35cc7718a62f847a08e94e4bb9367fcb110351863fccff0b6439087be1e110c"
+    },
+    "inklobster": {
+      "bytes": 28448,
+      "sha256": "1f8f6952e69afcf8236fe2f58d24cc62776ec6821c7e6db0b529ca68f0095671"
+    },
+    "inkz003": {
+      "bytes": 37712,
+      "sha256": "3eadb420980aae15485ff9d2eae27d31d8da8c8d7c9d5201831d25bc01bc3217"
+    }
+  },
+  "notice": "Fonts extracted byte-for-byte; no outlines or font names changed in this migration."
+}
