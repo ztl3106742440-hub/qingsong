@@ -5,7 +5,9 @@
 - 源文件位于 src/、content/；public/assets/ 与 public/index.html 由构建生成，请修改源文件后重新构建。
 - 字体位于 public/fonts/，原始授权完整保留于 public/licenses/。禁止随意替换、改名字或移除授权。
 - 兼容 INKFLOW 4.3 JSON 和旧 version: 4 的基本文字迁移。导入必须校验类型、枚举、数值和文本长度。
-- 预览和打印共用纸张 DOM；屏幕缩放不能影响 PDF 中的毫米尺寸。
+- 预览、内置 PDF 和备用打印共用状态与分页结果；屏幕缩放不能影响 PDF 中的毫米尺寸。
+- 默认按钮直接下载 PDF，不调用系统打印。可见字形使用矢量轮廓，并保留可检索文字层；不得只检查文字提取而漏掉实际渲染空白。
+- 竖屏由文档统一滚动；禁止在无实际可滚动范围的容器上使用 overscroll-behavior: contain，测试必须包含原生触摸事件。
 - 发布前运行 npm run check 和 npm run qa，检查平板横竖屏、窄屏、实际 PDF、所有纸张尺寸、字体切换、导入导出与本机保存。
 - 自动化浏览器使用桌面 Chromium 模拟视口，不等于真实 Android / iPad 打印验收。报告中必须明确区分。
 - 公开发布仅包含 public/ 内的站点资源，禁止发布 references/、artifacts/、个人项目 JSON、凭据或浏览器资料。

@@ -16,7 +16,7 @@ button:disabled { opacity: .6; cursor: wait; }
 .controls { overscroll-behavior: contain; }
 .view-tabs { display: none; }
 .paper-stack { align-items: center; width: 100%; }
-.paper-frame { position: relative; flex-shrink: 0; }
+.paper-frame { position: relative; flex-shrink: 0; overflow: hidden; overflow: clip; }
 .paper { transform-origin: top left; }
 .paper-head h3 { overflow-wrap: anywhere; max-height: 13mm; overflow: hidden; }
 .paper-head p { max-width: 130mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -34,10 +34,16 @@ button:disabled { opacity: .6; cursor: wait; }
 .fontcard .fontdesc { color: #667969; }
 .controls a { color: #245f49; }
 .filehidden { display: none; }
+.pdf-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 0; }
+.pdf-tools p { margin: 0; flex: 1; min-width: 180px; }
+.pdf-download { background: #f1f7f1; padding: 12px; border-radius: 10px; margin: 10px 0; }
+.pdf-download a { display: inline-flex; align-items: center; min-height: 44px; color: #184b40; font-weight: 700; }
+.pdf-download[hidden] { display: none; }
+html[data-exporting="true"] .controls { pointer-events: none; opacity: .65; }
 .layout[data-view="controls"] .controls, .layout[data-view="preview"] .workspace { visibility: visible; }
 @media (min-width: 901px) { .layout { min-height: 600px; } }
 @media (max-width: 1100px) and (min-width: 901px) { .layout { grid-template-columns: 330px minmax(0, 1fr); } .controls { padding: 18px; } }
-@media (max-width: 900px) {
+@media (max-width: 900px), (max-width: 1200px) and (orientation: portrait) {
   .appbar { position: relative; padding: 14px max(14px, env(safe-area-inset-right)) 12px max(14px, env(safe-area-inset-left)); flex-wrap: wrap; }
   .brand { flex: 1; } .brand-sub { font-size: 9px; letter-spacing: 1px; }
   .actions { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
@@ -46,9 +52,9 @@ button:disabled { opacity: .6; cursor: wait; }
   .view-tabs { display: flex; gap: 10px; justify-content: center; padding: 10px; background: #fbfaf7; position: sticky; top: 0; z-index: 9; border-bottom: 1px solid #dbe5dd; }
   .view-tabs button { flex: 1; max-width: 280px; }
   .layout { display: block; height: auto; }
-  .controls { border-right: 0; max-height: none; padding: 20px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); }
+  .controls { border-right: 0; max-height: none; overflow: visible; overscroll-behavior: auto; padding: 20px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); }
   .layout[data-view="controls"] .workspace, .layout[data-view="preview"] .controls { display: none; }
-  .workspace { padding: 18px 12px 40px; overflow: hidden; min-height: 65vh; }
+  .workspace { padding: 18px 12px 40px; overflow: visible; overscroll-behavior: auto; min-height: 65vh; }
   .paper-stack { align-items: center; gap: 20px; }
   .fontcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .fontsample { font-size: 22px; }
@@ -60,11 +66,11 @@ button:disabled { opacity: .6; cursor: wait; }
   .workhead h2 { font-size: 17px; }
 }
 @media print {
-  .view-tabs { display: none !important; }
+  .view-tabs, .pdf-tools, .pdf-download { display: none !important; }
   .layout .controls { display: none !important; }
   .layout .workspace, .layout[data-view="controls"] .workspace { display: block !important; }
   .layout { min-height: 0 !important; }
-  .paper-frame { display: block !important; width: auto !important; height: auto !important; margin: 0 !important; padding: 0 !important; break-after: page; page-break-after: always; }
+  .paper-frame { display: block !important; width: auto !important; height: auto !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; break-after: page; page-break-after: always; }
   .paper-frame:last-child { break-after: auto; page-break-after: auto; }
   .paper { transform: none !important; break-after: auto !important; page-break-after: auto !important; }
 }

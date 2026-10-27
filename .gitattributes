@@ -5,3 +5,4 @@
 *.html text eol=lf
 *.yml text eol=lf
 *.woff2 binary
+public/vendor/* -text

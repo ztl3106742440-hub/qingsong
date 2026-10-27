@@ -6,8 +6,9 @@ import { FONTS, PRESETS } from '../content/library.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const check = process.argv.includes('--check');
+const packageData = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
 const files = new Map();
-files.set('index.html', await readFile(resolve(root, 'src/index.html')));
+files.set('index.html', Buffer.from((await readFile(resolve(root, 'src/index.html'), 'utf8')).replaceAll('__APP_VERSION__', packageData.version)));
 for (const name of await readdir(resolve(root, 'src'))) {
   if (/\.(js|css)$/u.test(name)) files.set('assets/' + name, await readFile(resolve(root, 'src', name)));
 }
@@ -27,8 +28,14 @@ for (const font of [...FONTS.zh, ...FONTS.en].filter(font => font.kind === '内�
 }
 const html = files.get('index.html').toString();
 if (/https?:\/\//u.test(html)) throw new Error('页面不应自动依赖外部资源');
-for (const match of html.matchAll(/(?:src|href)="(\.\/[^"#]+)"/gu)) await readFile(resolve(root, 'public', match[1]));
+for (const match of html.matchAll(/(?:src|href)="(\.\/[^"#]+)"/gu)) await readFile(resolve(root, 'public', match[1].split('?')[0]));
 for (const file of ['licenses/FONT-NOTICES.txt', 'licenses/ARPHICPL.TXT', '.nojekyll']) await readFile(resolve(root, 'public', file));
+const vendors = JSON.parse(await readFile(resolve(root, 'public/vendor/VERSIONS.json'), 'utf8'));
+for (const vendor of vendors) {
+  const bytes = await readFile(resolve(root, 'public/vendor', vendor.file));
+  if (createHash('sha256').update(bytes).digest('hex') !== vendor.sha256) throw new Error('PDF 引擎哈希不符：' + vendor.file);
+  await readFile(resolve(root, 'public/vendor', vendor.file + '.LICENSE.txt'));
+}
 async function publicFiles(folder, prefix = '') {
   const output = [];
   for (const entry of await readdir(folder, { withFileTypes: true })) {
@@ -43,7 +50,6 @@ for (const file of await publicFiles(resolve(root, 'public'))) {
   const bytes = await readFile(resolve(root, 'public', file));
   hashes[file] = createHash('sha256').update(bytes).digest('hex');
 }
-const packageData = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
 const version = Buffer.from(JSON.stringify({ application: 'qingsong', version: packageData.version, files: hashes }, null, 2) + '\n');
 if (check) {
   if (!(await readFile(resolve(root, 'public/version.json'))).equals(version)) throw new Error('发布资源清单过期，请运行 npm run build');

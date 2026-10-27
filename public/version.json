@@ -1,22 +1,28 @@
 {
   "application": "qingsong",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "files": {
     ".nojekyll": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-    "assets/app.css": "6d022977d267fcfc2b0120d595b4bc1abab6e2f03108aa64cf538f100c632d2e",
-    "assets/app.js": "62a5ca94b6382526367d27ad90596c55a9a8563d694c88a74dfce80c62640077",
+    "assets/app.css": "7e2b04628ed82fb977f939d06264b8d32ae6a05a97f2596db98d995df19e2013",
+    "assets/app.js": "ac57e78d55b60e99f4832d7d5fa0465bbc83939f112ae5cdde8ca43fb43ba027",
     "assets/base.css": "7edee0b79e3ab968515c067d43795cab83c7477ada51df08517c6d2424818a9a",
     "assets/core.js": "7df6b1621d108b44478ba314b2564e90e9de87c08def5d846a43f8b9c4cb8438",
     "assets/fonts.css": "b0d0a75c9b31fb74bb60c956ec2b0a2bccae03e71f818316558d093f5c7d815a",
     "assets/library.js": "1b218de51ff301292bf64fa042840c894fa0481aec52ce722a384d71523385c4",
+    "assets/pdf-export.js": "f235889c1ae2dcb4c1b415581227e96a004a1ecb14ff41d3898b37d1b830c78b",
     "fonts/inkcomic.woff2": "a35cc7718a62f847a08e94e4bb9367fcb110351863fccff0b6439087be1e110c",
     "fonts/inkkai.woff2": "8b10496216df39d8d9be3c54ac250e6dc65b77acb79ac42f12f69ae38e018366",
     "fonts/inklobster.woff2": "1f8f6952e69afcf8236fe2f58d24cc62776ec6821c7e6db0b529ca68f0095671",
     "fonts/inksong.woff2": "a2f56e0d119188f7c40f12d1d2dd46aa78f6045a223f461b07fa7898e479d7b7",
     "fonts/inkz003.woff2": "3eadb420980aae15485ff9d2eae27d31d8da8c8d7c9d5201831d25bc01bc3217",
     "icon.svg": "2ea9f100e22749541e926cc159ab620e556c6b70f9c2ca327771c864da1786e8",
-    "index.html": "c4a2182742bd439faf668c44cfecab23287626582f81b85cefe6427566da83b1",
+    "index.html": "a5a16d11eea23f41bf250552d437d88d968dac6aa79e0ad4b6c195f7e46142d9",
     "licenses/ARPHICPL.TXT": "be08621e38b37203d70352531eca3e085724f06e989502241e5f0bc4b98bff9b",
-    "licenses/FONT-NOTICES.txt": "a1b4927b39412ca2871b77b9774ff5636d8d399a3c178c4344e6df8730e9f1e9"
+    "licenses/FONT-NOTICES.txt": "a1b4927b39412ca2871b77b9774ff5636d8d399a3c178c4344e6df8730e9f1e9",
+    "vendor/VERSIONS.json": "7ad084ac39c83a7361446c1725777078c3c1c7638ef09451e108b7f9c7eadb8a",
+    "vendor/fontkit.js": "d8df561b9fba98e24f2e5130e40948809281bbbc55a20c412359f1a0a5eb35a6",
+    "vendor/fontkit.js.LICENSE.txt": "1bcfb219d9a50907d81dcfe31a4f1dcee880c56e0c5fbc137848229799a7be4d",
+    "vendor/pdf-lib.js": "0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f",
+    "vendor/pdf-lib.js.LICENSE.txt": "f2c9fc00fdb66eb99ac156ba52d734af66d8d309f65753ae809ad34ee2883bcb"
   }
 }

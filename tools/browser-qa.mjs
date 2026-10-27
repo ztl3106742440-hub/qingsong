@@ -57,8 +57,25 @@ async function savePDF(page, name, tail) {
   const expectedPages = await page.locator('.paper').count();
   const state = await page.evaluate(() => window.QINGSONG.getState());
   const expectedRows = await page.locator('.paper').evaluateAll(papers => papers.map(paper => [...paper.querySelectorAll('.trace-word, .vertical-col')].map(node => node.textContent)));
-  await page.pdf({ path: resolve(output, name + '.pdf'), preferCSSPageSize: true, printBackground: true, displayHeaderFooter: false });
-  report.pdfs.push({ file: name + '.pdf', expectedPages, paperSize: state.paperSize, tail, expectedRows });
+  await page.locator('#saveStatus').evaluate(node => { node.textContent = 'QA：准备下载'; });
+  const download = page.waitForEvent('download', { timeout: 60000 });
+  const failure = page.waitForFunction(() => document.querySelector('#saveStatus').textContent.startsWith('导出失败：'), null, { timeout: 60000 }).then(async () => { throw new Error(await page.locator('#saveStatus').textContent()); });
+  const [file] = await Promise.all([Promise.race([download, failure]), page.locator('#printBtn').click()]);
+  await file.saveAs(resolve(output, name + '.pdf'));
+  await page.waitForFunction(() => document.documentElement.dataset.exporting !== 'true');
+  report.pdfs.push({ file: name + '.pdf', expectedPages, paperSize: state.paperSize, tail, expectedRows, exporter: 'native-vector', suggestedFilename: file.suggestedFilename() });
+}
+
+async function swipe(page, x, startY, distance = 280) {
+  const session = await page.context().newCDPSession(page);
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: startY }] });
+  for (let step = 1; step <= 12; step++) {
+    await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: startY - distance * step / 12 }] });
+    await page.waitForTimeout(20);
+  }
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForTimeout(250);
+  await session.detach();
 }
 
 try {
@@ -84,6 +101,7 @@ try {
     await page.waitForFunction(() => window.QINGSONG.getState().font === 'inksong');
     assert.equal(await page.locator('.controls').evaluate(node => node.scrollTop), before);
   });
+  await savePDF(page, 'classical-font-a4', '落月摇情满江树');
   await check('逐行/整篇重复顺序与深浅正确', async () => {
     await page.evaluate(() => window.QINGSONG.choosePreset('customzh'));
     await set(page, 'docText', '第一句\n第二句');
@@ -125,6 +143,7 @@ try {
   await check('本地字体导入、取消/损坏字体不会替换当前字体', async () => {
     await page.locator('#fontUpload').setInputFiles(resolve(root, 'public/fonts/inkcomic.woff2'));
     await page.waitForFunction(() => window.QINGSONG.getState().font === 'InkCustom');
+    await savePDF(page, 'custom-font-download', 'Legacy migration is complete.');
     await page.locator('#fontUpload').setInputFiles({ name: 'broken.woff2', mimeType: 'font/woff2', buffer: Buffer.from('broken') });
     await page.waitForFunction(() => document.querySelector('#saveStatus').textContent.includes('字体导入失败'));
     assert.equal(await page.evaluate(() => window.QINGSONG.getState().font), 'InkCustom');
@@ -141,6 +160,15 @@ try {
     await page.locator('[data-font="Caveat"]').evaluate(node => node.click());
     await page.waitForFunction(() => document.querySelector('#saveStatus').textContent.includes('保留原字体'));
     assert.equal(await page.evaluate(() => window.QINGSONG.getState().font), previous);
+  });
+  await check('内置 PDF 缺字时明确失败并恢复操作，不生成空白文件', async () => {
+    await set(page, 'docText', '🦆');
+    await page.locator('#printBtn').click();
+    await page.waitForFunction(() => document.querySelector('#saveStatus').textContent.startsWith('导出失败：'));
+    assert.match(await page.locator('#saveStatus').textContent(), /缺少字符/);
+    assert.equal(await page.locator('#printBtn').isDisabled(), false);
+    assert.equal(await page.locator('#controls').evaluate(node => node.inert), false);
+    assert.equal(await page.locator('#pdfDownload').isVisible(), false);
   });
   await page.evaluate(() => window.QINGSONG.choosePreset('meng'));
   await set(page, 'paperSize', 'a4l');
@@ -160,6 +188,11 @@ try {
   await set(page, 'paperSize', 'padl');
   await noClippedRows(page);
   await savePDF(page, 'english-essay-tablet-landscape', 'act responsibly');
+  for (const font of ['inkz003', 'inklobster']) {
+    await page.locator(`[data-font="${font}"]`).evaluate(node => node.click());
+    await page.waitForFunction(font => window.QINGSONG.getState().font === font, font);
+    await savePDF(page, 'english-' + font, 'act responsibly');
+  }
   await check('英文首个超长单词不会横向裁切', async () => {
     await set(page, 'docText', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.repeat(12));
     await noClippedRows(page);
@@ -195,7 +228,7 @@ try {
   await savePDF(page, 'extreme-vertical-a5', '落月摇情满江树');
   await context.close();
 
-  for (const [name, width, height] of [['tablet-portrait', 768, 1024], ['tablet-landscape', 1180, 820], ['phone', 360, 800]]) {
+  for (const [name, width, height] of [['tablet-portrait', 768, 1024], ['large-tablet-portrait', 1024, 1366], ['tablet-landscape', 1180, 820], ['phone', 360, 800]]) {
     const device = await browser.newContext({ viewport: { width, height }, hasTouch: true, isMobile: width < 901 });
     const screen = await device.newPage();
     observe(screen);
@@ -205,7 +238,8 @@ try {
       await noOverflow(screen);
       const tiny = await screen.locator('button:visible, select:visible, input[type="range"]:visible').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().height < 43.5).map(node => node.id || node.className));
       assert.deepEqual(tiny, []);
-      if (width < 901) {
+      const compact = await screen.locator('.view-tabs').isVisible();
+      if (compact) {
         await screen.screenshot({ path: resolve(output, name + '-settings.png'), fullPage: true });
         report.screenshots.push(name + '-settings.png');
         await screen.locator('#previewTab').click();
@@ -214,6 +248,24 @@ try {
       await noClippedRows(screen);
       await screen.screenshot({ path: resolve(output, name + '-preview.png'), fullPage: true });
       report.screenshots.push(name + '-preview.png');
+    });
+    await check(`${name}：原生触摸手势可滚动设置和预览`, async () => {
+      const compact = await screen.locator('.view-tabs').isVisible();
+      if (compact) {
+        await screen.locator('#settingsTab').click();
+        await screen.evaluate(() => window.scrollTo(0, 0));
+      } else await screen.locator('.controls').evaluate(node => { node.scrollTop = 0; });
+      await swipe(screen, Math.min(150, width / 3), Math.min(height - 100, 550));
+      const moved = await screen.evaluate(compact => compact ? window.scrollY : document.querySelector('.controls').scrollTop, compact);
+      assert.ok(moved > 80, `设置未响应触摸滑动：${moved}`);
+      if (compact) {
+        await screen.locator('#previewTab').click();
+        await screen.waitForTimeout(100);
+        await screen.evaluate(() => window.scrollTo(0, 0));
+        await swipe(screen, width / 2, Math.min(height - 100, 550));
+        assert.ok(await screen.evaluate(() => window.scrollY) > 80, '预览未响应触摸滑动');
+        await noOverflow(screen);
+      }
     });
     if (name === 'tablet-portrait') {
       await screen.locator('#settingsTab').click();

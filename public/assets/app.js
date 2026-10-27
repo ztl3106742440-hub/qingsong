@@ -16,6 +16,10 @@ let renderTimer;
 let fontRequest = 0;
 let customRequest = 0;
 let view = 'controls';
+const viewScrolls = { controls: 0, preview: 0 };
+let pdfURL;
+let exportInProgress = false;
+let latestLayout;
 const canvas = document.createElement('canvas');
 const context = canvas.getContext('2d');
 const readyFonts = new Set();
@@ -51,13 +55,18 @@ function readControls() {
   syncLabels();
 }
 function showView(next) {
+  if (exportInProgress) return;
+  viewScrolls[view] = window.scrollY;
   view = next;
   document.querySelector('.layout').dataset.view = next;
   for (const [id, value] of [['settingsTab', 'controls'], ['previewTab', 'preview']]) {
     $(id).classList.toggle('active', next === value);
     $(id).setAttribute('aria-pressed', String(next === value));
   }
-  if (next === 'preview') requestAnimationFrame(fitPreview);
+  requestAnimationFrame(() => {
+    if (next === 'preview') fitPreview();
+    if (getComputedStyle(document.querySelector('.view-tabs')).display !== 'none') window.scrollTo(0, viewScrolls[next]);
+  });
 }
 function renderFontCards() {
   const host = $('fontcards');
@@ -156,10 +165,16 @@ function paperShell(index, total, size) {
 }
 function renderPages() {
   try {
+    $('pdfDownload').hidden = true;
     context.font = `${mmToPx(state.fontSize)}px ${family()}`;
     const gap = mmToPx(state.letterSpace);
-    const measure = text => context.measureText(text).width + Math.max(0, Array.from(text).length - 1) * gap;
+    const measure = text => {
+      const metrics = context.measureText(text);
+      const inkWidth = Math.max(metrics.width, metrics.actualBoundingBoxRight || 0) + Math.max(0, metrics.actualBoundingBoxLeft || 0);
+      return inkWidth + Math.max(0, Array.from(text).length - 1) * gap;
+    };
     const result = paginate(state, measure);
+    latestLayout = result;
     const fragment = document.createDocumentFragment();
     result.pages.forEach((entries, index) => {
       const frame = element('div', 'paper-frame');
@@ -192,7 +207,7 @@ function renderPages() {
     $('pagesize').textContent = `@page{size:${result.size[0]}mm ${result.size[1]}mm;margin:0}`;
     $('status').textContent = `${state.lang === 'zh' ? '中文' : 'English'} · ${result.pages.length} 页 · ${result.entryCount} 行（含重复）`;
     $('pageCount').textContent = `· ${result.pages.length} 页`;
-    $('printBtn').disabled = false;
+    $('printBtn').disabled = exportInProgress;
     $('papers').dataset.valid = 'true';
     fitPreview();
   } catch (error) {
@@ -275,12 +290,13 @@ function bind() {
     const request = ++customRequest;
     try {
       if (file.size > 30 * 1024 * 1024) throw new Error('字体文件超过 30 MB');
-      const face = new FontFace('InkCustom', await file.arrayBuffer());
+      const bytes = await file.arrayBuffer();
+      const face = new FontFace('InkCustom', bytes);
       await face.load();
       if (request !== customRequest) return;
       if (customFont) document.fonts.delete(customFont.face);
       document.fonts.add(face);
-      customFont = { face, name: file.name };
+      customFont = { face, name: file.name, bytes };
       ++fontRequest;
       state.font = 'InkCustom';
       renderFontCards();
@@ -315,14 +331,38 @@ function bind() {
     } catch (error) { status('导出失败：' + error.message); }
   });
   $('printBtn').addEventListener('click', async () => {
+    if (exportInProgress) return;
+    exportInProgress = true;
+    document.documentElement.dataset.exporting = 'true';
+    $('controls').inert = true;
+    for (const id of ['printBtn', 'saveBtn', 'importBtn', 'exportBtn', 'settingsTab', 'previewTab']) $(id).disabled = true;
     try {
-      $('printBtn').disabled = true;
       status('正在准备 PDF…');
       await preparePrint();
-      status('请选择另存为 PDF；平板也可通过浏览器菜单 → 分享 → 打印');
-      window.print();
-    } catch (error) { status('无法打印：' + error.message); }
-    finally { $('printBtn').disabled = $('papers').dataset.valid !== 'true'; }
+      const { createPDF } = await import('./pdf-export.js');
+      const bytes = await createPDF(structuredClone(state), latestLayout, { customFont, fonts: FONTS, onProgress: status });
+      if (pdfURL) URL.revokeObjectURL(pdfURL);
+      pdfURL = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      const title = (state.docTitle || '临摹字帖').replace(/[<>:"/\\|?*\u0000-\u001f]/gu, '_').slice(0, 80);
+      const link = $('pdfDownloadLink');
+      link.href = pdfURL;
+      link.download = `清松_${title}.pdf`;
+      link.textContent = `下载 PDF · ${latestLayout.pages.length} 页`;
+      $('pdfDownload').hidden = false;
+      link.click();
+      status(`已生成 ${latestLayout.pages.length} 页 PDF；若未自动保存，请点“下载 PDF”`);
+    } catch (error) { status('导出失败：' + error.message); }
+    finally {
+      exportInProgress = false;
+      delete document.documentElement.dataset.exporting;
+      $('controls').inert = false;
+      for (const id of ['saveBtn', 'importBtn', 'exportBtn', 'settingsTab', 'previewTab']) $(id).disabled = false;
+      $('printBtn').disabled = $('papers').dataset.valid !== 'true';
+    }
+  });
+  $('browserPrintBtn').addEventListener('click', async () => {
+    try { await preparePrint(); window.print(); }
+    catch (error) { status('无法打印：' + error.message); }
   });
   window.addEventListener('beforeprint', refresh);
   window.addEventListener('afterprint', fitPreview);

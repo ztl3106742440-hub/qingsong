@@ -1,6 +1,6 @@
 # 清松
 
-清松是一款面向平板使用的诗文临摹字帖制作工具。从 INKFLOW 04.3 独立 HTML 整理而来，保留整篇浅灰范字、中英文字体、自动分页和浏览器打印 PDF 的工作流。
+清松是一款面向平板使用的诗文临摹字帖制作工具。从 INKFLOW 04.3 独立 HTML 整理而来，支持整篇浅灰范字、中英文字体、自动分页和内置 PDF 直接下载。当前版本 0.2.0。
 
 在线地址：https://ztl3106742440-hub.github.io/qingsong/
 
@@ -9,10 +9,12 @@
 1. 用平板或电脑浏览器打开网站。
 2. 选择中文或英文、基础字体或自有字体，选择预置作品或粘贴自己的文字。
 3. 调整纸张、排版、描红深浅和重复方式；平板竖屏通过顶部“字体与排版 / 整页预览”切换。
-4. 点击“导出 PDF”。Android Chrome 也可使用浏览器菜单 → 分享 → 打印 → 另存为 PDF。
+4. 点击“下载 PDF”，直接生成只包含字帖纸张的 PDF；若系统未自动保存，可点击生成后显示的下载链接。
 5. 将 PDF 导入平板笔记软件，用触控笔临摹。
 
-电脑浏览器打印建议：缩放 100%、边距无、关闭页眉页脚、启用背景图形，并使用页面设置的纸张尺寸。平板系统打印界面提供的纸张选项可能不同，第一次使用应核对导出文件。
+内置导出不需要选择系统打印机或设置边距。可见字形使用矢量轮廓，另保留可检索文字层，放大仍清晰，不将整个网页截图。预览与导出共用分页结果和纸张毫米尺寸。基础字体和重新导入的本地字体可直接导出；联网字体还需成功读取字体文件，失败会明确提示。
+
+设置区底部保留“备用：浏览器打印”。只有使用该备用入口时，才需要选择对应纸张、缩放 100%、边距无并关闭页眉页脚。
 
 ## 数据与字体
 
@@ -26,7 +28,7 @@
 
 ## 开发与目录
 
-需要 Node.js 22 或更新版本。应用本身没有第三方运行依赖。
+需要 Node.js 22 或更新版本。PDF 导出使用站内固定版本的 `pdf-lib` 与 `@pdf-lib/fontkit` 浏览器包，首次点击下载时加载；无需额外后端、账号或模型接口。
 
 ```text
 src/                  页面、交互、分页和样式源文件
@@ -35,6 +37,7 @@ public/               网站发布目录
   assets/             由构建生成的代码与样式
   fonts/              从原始 HTML 原样提取的 WOFF2
   licenses/           原始完整字体授权
+  vendor/             固定版本 PDF 引擎、字体解析库及授权
   version.json        发布资源 SHA-256 清单
 tools/                构建、本地服务、浏览器与 PDF 验证
 tests/                数据、迁移与分页回归测试
@@ -57,7 +60,7 @@ npm run check
 npm run qa
 ```
 
-`check` 运行 Node 原生测试并核对构建产物、字体哈希和资源路径。浏览器验证需要 Playwright 和 Chromium：在普通开发环境可运行 `npm install --no-save --package-lock=false playwright` 与 `npx playwright install chromium`；也支持通过 `PLAYWRIGHT_MODULE`、`CHROME_PATH` 指定现有安装。Codex 环境自动使用其随附 Playwright 和本机 Chrome。
+`check` 运行 Node 原生测试并核对构建产物、字体与 PDF 库哈希、授权和资源路径。浏览器验证包含实际按钮下载 PDF 和原生触摸事件。需要 Playwright 和 Chromium：在普通开发环境可运行 `npm install --no-save --package-lock=false playwright` 与 `npx playwright install chromium`；也支持通过 `PLAYWRIGHT_MODULE`、`CHROME_PATH` 指定现有安装。Codex 环境自动使用其随附 Playwright 和本机 Chrome。
 
 PDF 检查使用 `tools/verify-pdfs.py`，需要 Python 的 `pypdf`、`pypdfium2`、`Pillow`。验证时检查实际 PDF 页数、毫米尺寸、每页正文及末句，并渲染首末页作视觉检查。
 
@@ -67,4 +70,6 @@ PDF 检查使用 `tools/verify-pdfs.py`，需要 Python 的 `pypdf`、`pypdfium2
 
 GitHub Pages 设置应为 GitHub Actions。部署流程位于 `.github/workflows/deploy.yml`。
 
-详细验证范围见 `docs/VALIDATION.md`。桌面 Chromium 的触控与屏幕模拟不能代替真实 Android / iPad 的系统打印验收。
+本次修复与验证见 `docs/RELEASE_0.2.0.md`。桌面 Chromium 的原生触摸与屏幕模拟仍不能代替真实华为平板的最终操作确认。
+
+字体扩展交接要求及可直接复制给网页版 GPT 的提示词见 `docs/FONT_GPT_HANDOFF.md`。字体资源必须提供真实字体文件或可靠下载来源、原始授权和覆盖情况，不能用效果图或字体名清单代替可加载的字库。

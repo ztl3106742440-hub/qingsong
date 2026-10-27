@@ -35,6 +35,16 @@ for sample in report['pdfs']:
     verified_content = ''.join(normalize(row) for rows in sample['expectedRows'] for row in rows)
     assert normalize(sample['tail']) in verified_content, (path.name, 'missing tail')
     render = pdfium.PdfDocument(path)
+    if sample.get('exporter') == 'native-vector':
+        assert path.stat().st_size < 2_000_000, (path.name, 'unexpected oversized font embedding')
+        for index in range(len(pdf.pages)):
+            assert len(list(pdf.pages[index].images)) == 0, (path.name, 'unexpected page screenshot')
+            image = render[index].render(scale=.65).to_pil().convert('RGB')
+            factor = image.width / mm[0]
+            content = image.crop((int(13 * factor), int(36 * factor), int((mm[0] - 13) * factor), int((mm[1] - 22) * factor)))
+            pixels = content.get_flattened_data() if hasattr(content, 'get_flattened_data') else content.getdata()
+            dark = sum(1 for color in pixels if max(color) < 210)
+            assert dark > 30, (path.name, index, 'text extracted but visible glyphs missing', dark)
     for index in sorted({0, len(pdf.pages) - 1}):
         bitmap = render[index].render(scale=1.25)
         image = bitmap.to_pil().convert('RGB')
@@ -46,7 +56,7 @@ for sample in report['pdfs']:
         ImageDraw.Draw(thumb).text((10, 8), path.stem + ' / ' + str(index + 1), fill='#184b40')
         thumbnails.append(thumb)
     render.close()
-    checks.append({'file': path.name, 'pages': len(pdf.pages), 'sizeMm': mm, 'completeRows': True, 'tailPresent': True})
+    checks.append({'file': path.name, 'pages': len(pdf.pages), 'bytes': path.stat().st_size, 'sizeMm': mm, 'completeRows': True, 'tailPresent': True, 'visibleVectorGlyphs': sample.get('exporter') == 'native-vector'})
     print('PASS', path.name, len(pdf.pages), 'pages', mm)
 columns = 3
 sheet = Image.new('RGB', (columns * 470, ((len(thumbnails) + columns - 1) // columns) * 610), 'white')
