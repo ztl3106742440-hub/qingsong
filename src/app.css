@@ -34,6 +34,10 @@ button:disabled { opacity: .6; cursor: wait; }
 .fontcard .fontdesc { color: #667969; }
 .controls a { color: #245f49; }
 .filehidden { display: none; }
+.font-filters { margin: 14px 0 4px; }
+.font-filters[hidden] { display: none; }
+.font-filters .pill { padding: 8px 10px; }
+.fontgroup-title { grid-column: 1 / -1; margin: 12px 0 2px !important; color: #476e59 !important; }
 .pdf-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 0; }
 .pdf-tools p { margin: 0; flex: 1; min-width: 180px; }
 .pdf-download { background: #f1f7f1; padding: 12px; border-radius: 10px; margin: 10px 0; }

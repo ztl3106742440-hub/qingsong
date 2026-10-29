@@ -5,6 +5,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { createServer } from './serve.mjs';
+import { EXTRA_FONTS } from '../content/font-resources.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -84,10 +85,11 @@ try {
   observe(page);
   await page.goto(baseURL);
   await ready(page);
-  await check('子目录启动、5 套本地字体、长诗末句与重复完整', async () => {
+  await check('子目录启动、当前字体加载和长诗完整；新字体不抢占首屏下载', async () => {
     assert.match(await page.title(), /清松/);
     const fonts = await page.evaluate(() => [...document.fonts].filter(face => face.status === 'loaded').map(face => face.family));
-    assert.equal(new Set(fonts).size, 5);
+    assert.ok(fonts.includes('inkkai'));
+    assert.ok(!fonts.some(font => font.startsWith('gf-')));
     const text = (await page.locator('.page-content').allTextContents()).join('');
     assert.equal((text.match(/落月摇情满江树/g) || []).length, 2);
     await noOverflow(page);
@@ -193,6 +195,61 @@ try {
     await page.waitForFunction(font => window.QINGSONG.getState().font === font, font);
     await savePDF(page, 'english-' + font, 'act responsibly');
   }
+  await check('10 套新增字体逐款加载、长文分页与内置 PDF 下载', async () => {
+    await page.evaluate(() => window.QINGSONG.choosePreset('enessay'));
+    await set(page, 'paperSize', 'a4p');
+    await set(page, 'repeatCount', 1);
+    const text = await page.locator('#docText').inputValue();
+    await set(page, 'docText', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz 0123456789,.;:!? “Practice” — it’s progress.\n' + text);
+    for (const font of EXTRA_FONTS) {
+      await page.locator(`[data-font="${font.family}"]`).evaluate(node => node.click());
+      await page.waitForFunction(family => window.QINGSONG.getState().font === family, font.family);
+      await page.evaluate(() => document.fonts.ready);
+      await noClippedRows(page);
+      await savePDF(page, font.id, 'act responsibly');
+      for (const fontSize of [3.5, 10]) for (const letterSpace of [0, 2.5]) {
+        await page.evaluate(({ fontSize, letterSpace }) => {
+          document.querySelector('#fontSize').value = fontSize;
+          document.querySelector('#letterSpace').value = letterSpace;
+          document.querySelector('#fontSize').dispatchEvent(new Event('input', { bubbles: true }));
+        }, { fontSize, letterSpace });
+        await noClippedRows(page);
+      }
+      await set(page, 'fontSize', 5.2);
+      await set(page, 'letterSpace', .5);
+    }
+  });
+  await check('用途筛选与新增字体保存恢复', async () => {
+    const selected = await page.evaluate(() => window.QINGSONG.getState().font);
+    await page.locator('[data-font-group="daily"]').evaluate(node => node.click());
+    assert.equal(await page.locator('.fontcard').count(), 2);
+    assert.equal(await page.locator('[data-font="gf-edunswactfoundation"]').count(), 1);
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: resolve(output, 'english-daily-fonts.png') });
+    report.screenshots.push('english-daily-fonts.png');
+    await page.locator('[data-font-group="art"]').evaluate(node => node.click());
+    assert.equal(await page.locator('.fontcard').count(), 6);
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: resolve(output, 'english-art-fonts.png') });
+    report.screenshots.push('english-art-fonts.png');
+    await page.locator('[data-font-group="all"]').evaluate(node => node.click());
+    assert.equal(await page.locator('.fontcard').count(), 16);
+    await page.locator('#saveBtn').click();
+    await page.reload();
+    await ready(page);
+    assert.equal(await page.evaluate(() => window.QINGSONG.getState().font), selected);
+    assert.ok(await page.evaluate(family => [...document.fonts].some(face => face.family === family && face.status === 'loaded'), selected));
+  });
+  await check('完整字体授权索引可访问', async () => {
+    const licenses = await context.newPage();
+    observe(licenses);
+    await licenses.goto(new URL('licenses/index.html', baseURL).href);
+    assert.equal(await licenses.locator('li').count(), 15);
+    assert.ok((await licenses.locator('body').textContent()).includes('Allura'));
+    await licenses.close();
+  });
+  await page.locator('[data-font="inkcomic"]').evaluate(node => node.click());
+  await page.waitForFunction(() => window.QINGSONG.getState().font === 'inkcomic');
   await check('英文首个超长单词不会横向裁切', async () => {
     await set(page, 'docText', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.repeat(12));
     await noClippedRows(page);
@@ -274,6 +331,22 @@ try {
     await device.close();
   }
   if (!process.env.QA_URL) {
+    const fontFailureContext = await browser.newContext({ viewport: { width: 1366, height: 1000 } });
+    const fontFailurePage = await fontFailureContext.newPage();
+    observe(fontFailurePage);
+    await fontFailurePage.route('**/fonts/gf-sacramento.ttf', route => route.abort());
+    await fontFailurePage.goto(baseURL);
+    await ready(fontFailurePage);
+    await check('站内字体加载失败保留原字形，恢复网络后可重试', async () => {
+      await fontFailurePage.evaluate(() => window.QINGSONG.choosePreset('enquote'));
+      await fontFailurePage.locator('[data-font="gf-sacramento"]').evaluate(node => node.click());
+      await fontFailurePage.waitForFunction(() => document.querySelector('#saveStatus').textContent.includes('保留原字体'));
+      assert.equal(await fontFailurePage.evaluate(() => window.QINGSONG.getState().font), 'inkcomic');
+      await fontFailurePage.unroute('**/fonts/gf-sacramento.ttf');
+      await fontFailurePage.locator('[data-font="gf-sacramento"]').evaluate(node => node.click());
+      await fontFailurePage.waitForFunction(() => window.QINGSONG.getState().font === 'gf-sacramento');
+    });
+    await fontFailureContext.close();
     const blocked = await browser.newContext();
     await blocked.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Denied', 'SecurityError'); } }));
     const blockedPage = await blocked.newPage();
@@ -286,6 +359,30 @@ try {
       assert.ok(await blockedPage.locator('.paper').count() > 0);
     });
     await blocked.close();
+  }
+  if (process.env.QA_URL) {
+    await check('线上发布资源哈希与本地版本一致', async () => {
+      const manifest = JSON.parse(await readFile(resolve(root, 'public/version.json'), 'utf8'));
+      const verifier = await browser.newPage();
+      try {
+        await verifier.goto(baseURL);
+        report.publicHashes = await verifier.evaluate(async expected => {
+          const checked = [];
+          for (const [name, hash] of Object.entries(expected.files)) {
+            if (name === '.nojekyll') continue;
+            const response = await fetch('./' + name, { cache: 'no-store' });
+            if (!response.ok) throw new Error(name + ': HTTP ' + response.status);
+            const data = await response.arrayBuffer();
+            const actual = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', data)), byte => byte.toString(16).padStart(2, '0')).join('');
+            if (actual !== hash) throw new Error('Published hash mismatch: ' + name);
+            checked.push(name);
+          }
+          const actual = await fetch('./version.json', { cache: 'no-store' }).then(response => response.json());
+          if (actual.version !== expected.version) throw new Error('Published version mismatch');
+          return { version: actual.version, matchingFiles: checked, passed: true };
+        }, manifest);
+      } finally { await verifier.close(); }
+    });
   }
   assert.deepEqual(runtimeErrors, []);
   assert.deepEqual(missing, []);

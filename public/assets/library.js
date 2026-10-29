@@ -1,3 +1,4 @@
+import { EXTRA_FONTS } from './font-resources.js?v=0.3.0';
 export const FONTS={zh:[
 {id:'inkkai',name:'纸上行楷 · 离线',family:'inkkai',kind:'内嵌',desc:'清楚稳定，适合长诗、长文',sample:'清风徐来，水波不兴。'},
 {id:'inksong',name:'古典结构 · 离线',family:'inksong',kind:'内嵌',desc:'较规整的中文结构参考',sample:'春江潮水连海平'},
@@ -12,7 +13,7 @@ en:[
 {id:'inklobster',name:'装饰连笔 · 离线',family:'inklobster',kind:'内嵌',desc:'适合标题和短句，长文请先预览',sample:'Make your own way.'},
 {id:'Dancing Script',name:'Dancing Script',family:'Dancing Script',kind:'联网',desc:'优雅斜体连笔',sample:'Make your own way.'},
 {id:'Caveat',name:'Caveat',family:'Caveat',kind:'联网',desc:'自然舒展、接近日常英文笔记',sample:'A little progress every day.'},
-{id:'Satisfy',name:'Satisfy',family:'Satisfy',kind:'联网',desc:'更有装饰感的连笔',sample:'Practice makes progress.'}]};
+{id:'Satisfy',name:'Satisfy',family:'Satisfy',kind:'联网',desc:'更有装饰感的连笔',sample:'Practice makes progress.'},...EXTRA_FONTS]};
 
 const spring=`春江潮水连海平，海上明月共潮生。
 滟滟随波千万里，何处春江无月明？

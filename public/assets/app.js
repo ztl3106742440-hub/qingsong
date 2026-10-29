@@ -1,5 +1,6 @@
-import { FONTS, PRESETS } from './library.js';
-import { sanitizeState, importProject, paginate, mmToPx } from './core.js';
+import { FONTS, PRESETS } from './library.js?v=0.3.0';
+import { FONT_RESOURCES } from './font-resources.js?v=0.3.0';
+import { sanitizeState, importProject, paginate, mmToPx } from './core.js?v=0.3.0';
 
 const $ = id => document.getElementById(id);
 const STORE_KEY = 'qingsong_project';
@@ -23,6 +24,14 @@ let latestLayout;
 const canvas = document.createElement('canvas');
 const context = canvas.getContext('2d');
 const readyFonts = new Set();
+const loadingFonts = new Map();
+let previewObserver;
+let fontGroup = 'all';
+const groupNames = { daily: '日常清晰', natural: '自然连笔', art: '艺术花体', online: '联网候选' };
+function groupFor(font) {
+  if (font.kind === '联网') return 'online';
+  return font.group || ({ inkcomic: 'daily', inkz003: 'natural', inklobster: 'art' })[font.family] || 'daily';
+}
 const family = () => `"${state.font}"`;
 const status = message => { $('saveStatus').textContent = message; };
 const element = (tag, className, text) => {
@@ -70,30 +79,90 @@ function showView(next) {
 }
 function renderFontCards() {
   const host = $('fontcards');
+  previewObserver?.disconnect();
   host.replaceChildren();
-  for (const font of FONTS[state.lang]) {
+  let filters = $('fontFilters');
+  if (!filters) {
+    filters = element('div', 'row font-filters');
+    filters.id = 'fontFilters';
+    filters.setAttribute('role', 'group');
+    filters.setAttribute('aria-label', '按用途筛选英文字体');
+    host.before(filters);
+  }
+  filters.replaceChildren();
+  filters.hidden = state.lang !== 'en';
+  if (state.lang === 'en') {
+    for (const [value, label] of Object.entries({ all: '全部', ...groupNames })) {
+      const button = element('button', 'pill' + (fontGroup === value ? ' active' : ''), label);
+      button.dataset.fontGroup = value;
+      button.setAttribute('aria-pressed', String(fontGroup === value));
+      button.addEventListener('click', () => { fontGroup = value; renderFontCards(); });
+      filters.append(button);
+    }
+  }
+  previewObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) if (entry.isIntersecting) {
+      previewObserver.unobserve(entry.target);
+      const button = entry.target;
+      const font = FONTS[state.lang].find(item => item.family === button.dataset.font);
+      if (!font || !FONT_RESOURCES[font.family]) continue;
+      ensureFont(font.family).then(() => {
+        if (!button.isConnected) return;
+        const sample = button.querySelector('.fontsample');
+        sample.textContent = font.sample;
+        sample.style.fontFamily = `"${font.family}"`;
+        sample.style.fontSize = '';
+      }).catch(() => {
+        if (button.isConnected) button.querySelector('.fontsample').textContent = '预览未加载 · 点击重试';
+      });
+    }
+  }, { rootMargin: '120px' });
+  let visible = FONTS[state.lang].filter(font => state.lang !== 'en' || fontGroup === 'all' || groupFor(font) === fontGroup);
+  if (state.lang === 'en') visible = visible.slice().sort((a, b) => Object.keys(groupNames).indexOf(groupFor(a)) - Object.keys(groupNames).indexOf(groupFor(b)));
+  let previousGroup;
+  for (const font of visible) {
+    const group = groupFor(font);
+    if (state.lang === 'en' && group !== previousGroup) {
+      host.append(element('h3', 'fontgroup-title', groupNames[group]));
+      previousGroup = group;
+    }
     const button = element('button', 'fontcard' + (state.font === font.family ? ' selected' : ''));
     button.type = 'button';
     button.dataset.font = font.family;
     button.setAttribute('aria-pressed', String(state.font === font.family));
-    const loaded = font.kind !== '联网' || readyFonts.has(font.family);
-    const sample = element('span', 'fontsample', loaded ? font.sample : '联网字体 · 点击加载');
+    const loaded = readyFonts.has(font.family);
+    const sample = element('span', 'fontsample', loaded ? font.sample : font.kind === '联网' ? '联网字体 · 点击加载' : '字体预览加载中…');
     if (loaded) sample.style.fontFamily = `"${font.family}"`;
     else sample.style.fontSize = '16px';
     const name = element('span', 'fontname', font.name);
-    name.append(element('span', 'flag', font.kind === '内嵌' ? '离线' : font.kind));
+    name.append(element('span', 'flag', font.kind === '联网' ? '联网' : '站内'));
     button.append(sample, name, element('span', 'fontdesc', font.desc));
     button.addEventListener('click', () => chooseFont(font));
     host.append(button);
+    if (!loaded && FONT_RESOURCES[font.family]) previewObserver.observe(button);
   }
   if (state.font === 'InkCustom') host.prepend(element('div', 'notice', '当前本地字体：' + customFont.name));
 }
 async function ensureFont(fontFamily = state.font) {
   if (fontFamily === 'InkCustom') return;
+  if (readyFonts.has(fontFamily)) return;
+  if (loadingFonts.has(fontFamily)) return loadingFonts.get(fontFamily);
   const font = [...FONTS.zh, ...FONTS.en].find(item => item.family === fontFamily);
-  const loaded = await document.fonts.load(`24px "${fontFamily}"`, font?.sample || '清松 Practice');
-  if (!loaded.length || !loaded.every(face => face.status === 'loaded')) throw new Error('字体未成功加载，请刷新重试或选择其他字体');
-  readyFonts.add(fontFamily);
+  const task = (async () => {
+    const resource = FONT_RESOURCES[fontFamily];
+    const exists = [...document.fonts].some(face => face.family.replaceAll('"', '') === fontFamily);
+    if (resource && !exists) {
+      const url = new URL('../' + resource.file, import.meta.url).href;
+      const face = new FontFace(fontFamily, `url("${url}") format("${resource.format}")`, { weight: '400' });
+      await face.load();
+      document.fonts.add(face);
+    }
+    const loaded = await document.fonts.load(`24px "${fontFamily}"`, font?.sample || '清松 Practice');
+    if (!loaded.length || !loaded.every(face => face.status === 'loaded')) throw new Error('字体未成功加载，请刷新重试或选择其他字体');
+    readyFonts.add(fontFamily);
+  })().finally(() => loadingFonts.delete(fontFamily));
+  loadingFonts.set(fontFamily, task);
+  return task;
 }
 async function loadOnlineFont(font) {
   if (readyFonts.has(font.family)) return;
@@ -136,6 +205,7 @@ function selectPreset(id) {
   if (!preset) return;
   ++fontRequest;
   const changedLanguage = state.lang !== preset.lang;
+  if (changedLanguage) fontGroup = 'all';
   state = { ...state, lang: preset.lang, preset: preset.id, docTitle: preset.title, docAuthor: preset.author, docText: preset.text, layoutMode: preset.mode };
   if (changedLanguage || !FONTS[state.lang].some(font => font.family === state.font)) {
     state.font = state.lang === 'en' ? 'inkcomic' : 'inkkai';
@@ -339,7 +409,7 @@ function bind() {
     try {
       status('正在准备 PDF…');
       await preparePrint();
-      const { createPDF } = await import('./pdf-export.js');
+      const { createPDF } = await import('./pdf-export.js?v=0.3.0');
       const bytes = await createPDF(structuredClone(state), latestLayout, { customFont, fonts: FONTS, onProgress: status });
       if (pdfURL) URL.revokeObjectURL(pdfURL);
       pdfURL = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
@@ -370,7 +440,11 @@ function bind() {
     if ((event.ctrlKey || event.metaKey) && event.key === 's') { event.preventDefault(); $('saveBtn').click(); }
   });
   new ResizeObserver(fitPreview).observe($('papers'));
-  document.fonts.addEventListener('loadingdone', () => { try { renderPages(); } catch {} });
+  document.fonts.addEventListener('loadingdone', event => {
+    if (event.fontfaces.some(face => face.family.replaceAll('"', '') === state.font)) {
+      try { renderPages(); } catch {}
+    }
+  });
 }
 
 async function start() {
@@ -390,8 +464,9 @@ async function start() {
   } catch { restoreMessage = '本机设置无法恢复，可通过项目 JSON 导入'; }
   syncUI();
   bind();
-  await Promise.all([...FONTS.zh, ...FONTS.en].filter(font => font.kind === '内嵌').map(font => ensureFont(font.family)));
+  await ensureFont();
   await document.fonts.ready;
+  renderFontCards();
   renderPages();
   status(restoreMessage || '清松已就绪 · 文字与设置仅保存在本机');
   document.documentElement.dataset.ready = 'true';

@@ -5,4 +5,6 @@
 *.html text eol=lf
 *.yml text eol=lf
 *.woff2 binary
+*.ttf binary
+public/licenses/google-fonts/* -text
 public/vendor/* -text

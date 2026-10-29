@@ -1,13 +1,13 @@
 {
   "name": "qingsong",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "清松：面向平板的诗文全文临摹字帖工作室",
   "engines": { "node": ">=22" },
   "scripts": {
     "build": "node tools/build.mjs",
-    "test": "node --test tests/core.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/font-resources.test.mjs",
     "check": "node tools/check.mjs",
     "serve": "node tools/serve.mjs",
     "qa": "node tools/browser-qa.mjs"

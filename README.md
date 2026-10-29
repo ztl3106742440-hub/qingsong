@@ -1,6 +1,6 @@
 # 清松
 
-清松是一款面向平板使用的诗文临摹字帖制作工具。从 INKFLOW 04.3 独立 HTML 整理而来，支持整篇浅灰范字、中英文字体、自动分页和内置 PDF 直接下载。当前版本 0.2.0。
+清松是一款面向平板使用的诗文临摹字帖制作工具。从 INKFLOW 04.3 独立 HTML 整理而来，支持整篇浅灰范字、中英文字体、自动分页和内置 PDF 直接下载。当前版本 0.3.0。
 
 在线地址：https://ztl3106742440-hub.github.io/qingsong/
 
@@ -21,8 +21,8 @@
 - 网站不使用账号、后端或云同步。输入的正文、导入的 JSON 和字体在浏览器内处理，不上传 GitHub。
 - “保存设置”只保存到当前浏览器；跨设备转移用“导出项目 / 导入项目”。保留 INKFLOW 4.3 JSON 兼容，以及旧 `version: 4` 的基本文字迁移。
 - 本地字体只在当前页面会话有效，不随 JSON 保存；刷新、换设备后需重新导入。
-- 5 套基础字体作为网站资源提供。联网字体只有主动点击时才请求 Google Fonts；失败会提示并保留原字体。
-- 原始字体授权完整保留于 `public/licenses/FONT-NOTICES.txt`，Arphic 许可另存为 `ARPHICPL.TXT`。字体不是项目新创作的全字库。
+- 共 15 套站内字体：原有 5 套基础字体与新增 10 套英文 Google Fonts。字体按当前选择和可见卡片加载，英文可按用途筛选。联网候选只有主动点击时才请求 Google Fonts；失败会提示并保留原字体。
+- 网页底部的授权入口提供全部站内字体的来源和原始许可。旧字体完整授权在 `public/licenses/FONT-NOTICES.txt`，Arphic 许可另存为 `ARPHICPL.TXT`；新增 OFL 在 `public/licenses/google-fonts/`。字体不是项目新创作的全字库。
 - 本版尚未加入 Service Worker / PWA 安装和离线缓存。已打开页面可在资源加载完毕后继续排版，但不能据此保证断网冷启动。
 - 原始便携 HTML 保留在维护电脑的 `references/`，不进入公开仓库。
 
@@ -33,9 +33,10 @@
 ```text
 src/                  页面、交互、分页和样式源文件
 content/library.js    预置诗文和字体卡片元数据
+content/font-resources.js  站内字体格式、路径、来源、分组和哈希
 public/               网站发布目录
   assets/             由构建生成的代码与样式
-  fonts/              从原始 HTML 原样提取的 WOFF2
+  fonts/              原始 WOFF2 与官方新增 TTF
   licenses/           原始完整字体授权
   vendor/             固定版本 PDF 引擎、字体解析库及授权
   version.json        发布资源 SHA-256 清单
@@ -70,6 +71,6 @@ PDF 检查使用 `tools/verify-pdfs.py`，需要 Python 的 `pypdf`、`pypdfium2
 
 GitHub Pages 设置应为 GitHub Actions。部署流程位于 `.github/workflows/deploy.yml`。
 
-本次修复与验证见 `docs/RELEASE_0.2.0.md`。桌面 Chromium 的原生触摸与屏幕模拟仍不能代替真实华为平板的最终操作确认。
+最新字体扩展、来源与验证见 `docs/RELEASE_0.3.0.md`；内置 PDF 和滚动修复记录见 `docs/RELEASE_0.2.0.md`。桌面 Chromium 的原生触摸与屏幕模拟仍不能代替真实华为平板的最终操作确认。
 
 字体扩展交接要求及可直接复制给网页版 GPT 的提示词见 `docs/FONT_GPT_HANDOFF.md`。字体资源必须提供真实字体文件或可靠下载来源、原始授权和覆盖情况，不能用效果图或字体名清单代替可加载的字库。

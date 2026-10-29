@@ -39,7 +39,9 @@ for sample in report['pdfs']:
         assert path.stat().st_size < 2_000_000, (path.name, 'unexpected oversized font embedding')
         for index in range(len(pdf.pages)):
             assert len(list(pdf.pages[index].images)) == 0, (path.name, 'unexpected page screenshot')
-            image = render[index].render(scale=.65).to_pil().convert('RGB')
+            # Fine script strokes need the same resolution as the visual review;
+            # downsampling to .65 can erase pale hairlines before this check.
+            image = render[index].render(scale=1.25).to_pil().convert('RGB')
             factor = image.width / mm[0]
             content = image.crop((int(13 * factor), int(36 * factor), int((mm[0] - 13) * factor), int((mm[1] - 22) * factor)))
             pixels = content.get_flattened_data() if hasattr(content, 'get_flattened_data') else content.getdata()

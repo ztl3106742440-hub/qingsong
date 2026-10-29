@@ -1,5 +1,6 @@
 /* Native vector PDF export. Only the shared paper layout is written, never the app UI. */
-import { wrapText } from './core.js';
+import { wrapText } from './core.js?v=0.3.0';
+import { FONT_RESOURCES } from './font-resources.js?v=0.3.0';
 
 const MM = 72 / 25.4;
 const binaries = new Map();
@@ -45,7 +46,8 @@ async function fontSources(state, customFont, fonts) {
     return [new Uint8Array(customFont.bytes)];
   }
   const entry = fonts[state.lang].find(font => font.family === state.font);
-  if (entry?.kind === '内嵌') return [await loadBytes(new URL(`../fonts/${state.font}.woff2`, import.meta.url).href)];
+  const resource = FONT_RESOURCES[state.font];
+  if (resource) return [await loadBytes(new URL('../' + resource.file, import.meta.url).href)];
   if (entry?.kind !== '联网') throw new Error('未识别的字体');
   const cssURL = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(state.font).replaceAll('%20', '+') + '&display=swap';
   const response = await fetch(cssURL, { credentials: 'omit' });
@@ -88,7 +90,7 @@ export async function createPDF(state, layout, { customFont, fonts, onProgress =
     for (const bytes of sources) {
       selected.push(face(bytes));
     }
-    const headerBytes = await loadBytes(new URL('../fonts/inkkai.woff2', import.meta.url).href);
+    const headerBytes = await loadBytes(new URL('../' + FONT_RESOURCES.inkkai.file, import.meta.url).href);
     header = face(headerBytes);
   } catch (error) { throw fontError(error); }
 
